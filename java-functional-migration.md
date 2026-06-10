@@ -18,7 +18,31 @@ A pragmatic, incremental guide to moving a Java codebase toward functional style
 
 ---
 
-## The Golden Rule: Tests First, Always
+## Step 0: Clarify Scope Before Anything Else
+
+**Before writing a single line of code or test, ask the user which principles they want applied.**
+
+Even if the user says "make this more functional", that's not enough to act on — applying all principles at once to an unfamiliar codebase creates noise and risk. Instead, present the available principles and let them choose.
+
+Ask exactly this (adapt wording to match conversation tone, but cover all options):
+
+> Before I start, which of these functional principles would you like me to apply?
+> You can pick one, several, or all of them:
+>
+> 1. **Immutability** — make fields `final`, construct objects fully via constructor or change the class to record (if possible)
+> 2. **Non-mutating functions** — methods return new objects instead of modifying their input
+> 3. **Side effects at the edges** — push I/O, DB calls, and `Instant.now()` out of domain logic
+> 4. **Intention-revealing methods** — replace raw setter clusters with named methods that say *why* (e.g. `user.approve(instant)` instead of two setters)
+> 5. **Eliminate nulls** — replace `null` returns with `Optional<T>` and empty collections
+> 6. **Streams for transformations only** — remove side effects from stream pipelines
+
+Then wait for the answer. Only apply the principles the user selected.
+
+**If the user has already been explicit** (e.g. "just remove the nulls" or "I only want to apply immutability"), skip this step and proceed with what they asked.
+
+---
+
+## Step 1: The Golden Rule — Tests First, Always
 
 **A refactor is not complete until all tests pass. No exceptions.**
 
@@ -481,20 +505,22 @@ public Optional<String> getNickname() {
 
 When asked to refactor existing code, follow this order:
 
-1. **Read the code first.** Identify which classes have many setters, where `null` is returned, where `Instant.now()` or repositories are called inside domain methods.
+1. **Clarify scope (Step 0).** Ask the user which principles to apply. Do not proceed until you have a clear answer. Only apply what was selected.
 
-2. **Write tests before touching anything.** Cover the current behavior. Run them. They must be green.
+2. **Read the code.** Identify which classes have many setters, where `null` is returned, where `Instant.now()` or repositories are called inside domain methods. Focus only on areas relevant to the selected principles.
 
-3. **Classify changes by impact:**
+3. **Write tests before touching anything (Step 1).** Cover the current behavior. Run them. They must be green.
+
+4. **Classify changes by impact:**
    - Low risk: add `Optional` return types, make fields `final`, defensive copies.
    - Medium risk: introduce intention-revealing methods (replaces setter clusters).
    - Higher risk: make entities fully immutable (return new objects from state-change methods).
 
-4. **Refactor one class or one method at a time.** Run tests after each change.
+5. **Refactor one class or one method at a time.** Run tests after each change.
 
-5. **The refactor is done when all tests are green.** Not before.
+6. **The refactor is done when all tests are green.** Not before.
 
-6. **Avoid over-engineering.** Don't introduce `Either`, `Try`, `Vavr`, or monad wrappers unless the user explicitly asks. Keep it idiomatic Java.
+7. **Avoid over-engineering.** Don't introduce `Either`, `Try`, `Vavr`, or monad wrappers unless the user explicitly asks. Keep it idiomatic Java.
 
 ---
 
@@ -530,10 +556,11 @@ When asked to refactor existing code, follow this order:
 
 ## Output Format
 
-When refactoring user-provided Java code:
+When the user shares code to refactor:
 
-1. **Write (or show) the tests first**, covering the current behavior. If tests already exist, note that they must pass before and after.
-2. **Show the refactored code** with inline comments where the change is non-obvious.
-3. **Confirm that all tests pass** after the refactor, or note what to verify if the environment isn't available.
-4. **Note any trade-offs** (e.g. "this entity uses JPA — `final` fields are skipped; immutability is enforced via private setters").
-5. Keep responses focused. Don't refactor code the user didn't show you.
+1. **Ask which principles to apply (Step 0)**, unless they've already been explicit. Wait for confirmation before proceeding.
+2. **Write (or show) the tests first (Step 1)**, covering the current behavior. If tests already exist, note that they must pass before and after.
+3. **Show the refactored code** with inline comments where the change is non-obvious. Only apply the selected principles.
+4. **Confirm that all tests pass** after the refactor, or note what to verify if the environment isn't available.
+5. **Note any trade-offs** (e.g. "this entity uses JPA — `final` fields are skipped; immutability is enforced via private setters").
+6. Keep responses focused. Don't refactor code the user didn't show you.
